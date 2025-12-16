@@ -169,7 +169,7 @@ pip installprotobuf==4.25.3
 Terimakasih telah memakai 🤩🤩🤩
 
 
-Sudah saatnya menjadi V-Tuber dan menggantikan Gawr-Gura
+Sudah saatnya menjadi V-Tuber dan menggantikan Gawr-Gura.
 Otsu.. yubi yubi 🦈
 
 
