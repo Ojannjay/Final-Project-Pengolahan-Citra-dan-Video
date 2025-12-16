@@ -159,6 +159,7 @@ pip installprotobuf==4.25.3
 - GUI tuning real-time
 - Multi-camera / fallback tracker
 - Recording & playback tracking
+- Dibuat untuk bisa semua avatar(karena sekarang masih terbatas di avatar default VSeeCam)
 
 ## 🙏 Credits
 - MediaPipe (Google) — tracking face/pose/hands
