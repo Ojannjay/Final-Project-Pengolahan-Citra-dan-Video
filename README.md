@@ -167,6 +167,9 @@ pip install protobuf==4.25.3
 - VMC (Virtual Motion Capture) — standard OSC message set
 - python-osc — OSC client library untuk Python
 
+## 📹Video Demo
+https://drive.google.com/drive/folders/1j7dk7VqRrtOP4HMoRvkWRM5vgNrqZbUd?usp=sharing
+
 Terimakasih telah memakai 🤩🤩🤩
 
 
