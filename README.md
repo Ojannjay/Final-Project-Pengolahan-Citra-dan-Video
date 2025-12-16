@@ -16,7 +16,6 @@ Project Python untuk tracking **wajah, mata, mulut, pose tubuh, tangan, dan jari
 - [Troubleshooting](#-troubleshooting)
 - [Rencana Pengembangan](#-rencana-pengembangan)
 - [Credits](#-credits)
-- [License](#-license)
 
 ---
 
