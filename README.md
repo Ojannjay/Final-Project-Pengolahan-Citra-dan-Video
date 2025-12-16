@@ -46,8 +46,7 @@ Project Python untuk tracking **wajah, mata, mulut, pose tubuh, tangan, dan jari
 
 ### 1) Clone repo
 ```bash
-git clone <repo-url-kamu>
-cd <nama-folder-project>
+git clone https://github.com/Ojannjay/Final-Project-Pengolahan-Citra-dan-Video.git
 ```
 
 ### 2) (Opsional tapi disarankan) Virtual environment
