@@ -170,7 +170,8 @@ pip install protobuf==4.25.3
 Terimakasih telah memakai 🤩🤩🤩
 
 
-Sudah saatnya menjadi V-Tuber dan menggantikan Gawr-Gura.
-Otsu.. yubi yubi 🦈
+Sudah saatnya menjadi V-Tuber dan menggantikan Gawr-Gura dan Korone.
+AAA..🦈
+Otsu yubi-yubi 🐶
 
 
