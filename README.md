@@ -148,8 +148,9 @@ FINGER_SENSITIVITY = 1.3
 
 ### Protobuf error:
 - Kalau muncul error terkait MessageFactory/GetPrototype, install versi ini:
+
 ```python
-pip install protobuf==3.20.3
+pip installprotobuf==4.25.3
 ```
 
 ## 🧭 Rencana Pengembangan
