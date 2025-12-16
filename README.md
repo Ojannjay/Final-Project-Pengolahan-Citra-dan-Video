@@ -75,7 +75,7 @@ pip install -r requirements.txt
 
 NOTES: kalau kamu pernah kena error protobuf(ini jarang terjadi sih), kamu bisa install protobuff dengan:
 ```bash
-pip install protobuf==3.20.3
+pip install protobuf==4.25.3
 ```
 
 ## 🎛️ Setting VSeeFace
@@ -150,7 +150,7 @@ FINGER_SENSITIVITY = 1.3
 - Kalau muncul error terkait MessageFactory/GetPrototype, install versi ini:
 
 ```python
-pip installprotobuf==4.25.3
+pip install protobuf==4.25.3
 ```
 
 ## 🧭 Rencana Pengembangan
