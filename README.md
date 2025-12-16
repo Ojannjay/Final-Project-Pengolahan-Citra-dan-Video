@@ -2,7 +2,7 @@
 
 Project Python untuk tracking **wajah, mata, mulut, pose tubuh, tangan, dan jari** memakai **MediaPipe**, lalu mengirim datanya ke **VSeeFace** lewat **VMC/OSC (Virtual Motion Capture)**.
 
-> Cocok buat tugas/portofolio PCV dan setup VTuber sederhana berbasis webcam.
+> Cocok buat setup VTuber sederhana berbasis webcam.
 
 ---
 
