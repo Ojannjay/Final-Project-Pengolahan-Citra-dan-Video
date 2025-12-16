@@ -1,6 +1,6 @@
 """
 VTuber Tracking System - VSeeFace
-Full body(dari kepala sampai kaki) 
+Full body(dari kepala sampai kaki)
 """
 
 import time
@@ -11,8 +11,8 @@ import mediapipe as mp
 from pythonosc import udp_client
 
 # --- KONFIGURASI UTAMA ---
-OSC_IP = "10.4.75.12"  # IP VSeeFace Perangkat kamu
-OSC_PORT = 39539 #Port VSeeFace Perangkat Kamu
+OSC_IP = "10.125.186.121"  # IP VSeeFace Perangkat kamu
+OSC_PORT = 39539  # Port VSeeFace Perangkat Kamu
 WEBCAM_ID = 0
 TARGET_FPS = 30
 
@@ -50,7 +50,8 @@ PITCH_CORRECTION_FACTOR = 0.015
 DEADZONE = 0.3
 NECK_RATIO = 0.5
 EAR_THRESH_CLOSE, EAR_THRESH_OPEN = 0.15, 0.25
-MOUTH_OPEN_MIN, MOUTH_OPEN_MAX = 5.0, 40.0  
+MOUTH_OPEN_MIN, MOUTH_OPEN_MAX = 5.0, 40.0
+
 
 # =========================
 # Helper math
@@ -62,6 +63,7 @@ def euler_to_quaternion(pitch, yaw, roll):
     qw = np.cos(pitch / 2) * np.cos(yaw / 2) * np.cos(roll / 2) + np.sin(pitch / 2) * np.sin(yaw / 2) * np.sin(roll / 2)
     return [qx, qy, qz, qw]
 
+
 def quat_from_axis_angle(angle, axis_idx):
     s = math.sin(angle / 2.0)
     c = math.cos(angle / 2.0)
@@ -72,6 +74,7 @@ def quat_from_axis_angle(angle, axis_idx):
     if axis_idx == 2:
         return [0.0, 0.0, s, c]  # Z
     return [0.0, 0.0, 0.0, 1.0]
+
 
 def get_limb_rotation(start, end, rest_vector):
     v_curr = np.array(end) - np.array(start)
@@ -100,6 +103,7 @@ def get_limb_rotation(start, end, rest_vector):
     qw = math.cos(angle / 2)
     return [qx, qy, qz, qw]
 
+
 def calculate_ear(face_landmarks, indices, img_w, img_h):
     coords = []
     for idx in indices:
@@ -109,6 +113,7 @@ def calculate_ear(face_landmarks, indices, img_w, img_h):
     v2 = np.linalg.norm(coords[2] - coords[4])
     h = np.linalg.norm(coords[0] - coords[3])
     return (v1 + v2) / (2.0 * h + 1e-6)
+
 
 def get_relative_iris(face_landmarks, iris_idx, inner_idx, outer_idx, img_w, img_h):
     iris = np.array([face_landmarks.landmark[iris_idx].x * img_w, face_landmarks.landmark[iris_idx].y * img_h])
@@ -128,6 +133,7 @@ def get_relative_iris(face_landmarks, iris_idx, inner_idx, outer_idx, img_w, img
     norm_y = dist_y / (eye_width * 0.3)
     return norm_x, norm_y
 
+
 def get_finger_curl(landmarks, tip_idx, knuckle_idx, wrist_idx):
     tip = np.array([landmarks.landmark[tip_idx].x, landmarks.landmark[tip_idx].y])
     wrist = np.array([landmarks.landmark[wrist_idx].x, landmarks.landmark[wrist_idx].y])
@@ -141,10 +147,30 @@ def get_finger_curl(landmarks, tip_idx, knuckle_idx, wrist_idx):
     curl = max(0.0, min(1.0, curl)) * FINGER_SENSITIVITY
     return curl
 
+
 def apply_deadzone(curr, last, dz):
     if abs(curr - last) < dz:
         return last, last
     return curr, curr
+
+
+# =========================
+# FULLSCREEN COVER (biar abu-abu hilang)
+# =========================
+def resize_cover(frame, dst_w, dst_h):
+    h, w = frame.shape[:2]
+    if dst_w <= 0 or dst_h <= 0:
+        return frame
+
+    # cover: isi layar full, boleh crop sedikit
+    scale = max(dst_w / w, dst_h / h)
+    nw, nh = int(w * scale), int(h * scale)
+    resized = cv2.resize(frame, (nw, nh), interpolation=cv2.INTER_LINEAR)
+
+    x0 = (nw - dst_w) // 2
+    y0 = (nh - dst_h) // 2
+    return resized[y0:y0 + dst_h, x0:x0 + dst_w]
+
 
 # =========================
 # Kalman stabilizer
@@ -164,6 +190,7 @@ class Stabilizer:
         self.state = self.filter.statePost
         return self.state[0][0]
 
+
 # =========================
 # Tracker wrapper
 # =========================
@@ -179,6 +206,7 @@ class VSeeFaceVMC:
 
     def blend(self, key, val):
         self.client.send_message("/VMC/Ext/Blend/Val", [key, float(val)])
+
 
 # =========================
 # Main app
@@ -249,12 +277,20 @@ def main():
     print("📹 Tracking started... Press 'Q' to quit\n")
     print("=" * 60)
 
+    # === FULLSCREEN WINDOW SETUP (NO GRAY AREA) ===
+    window_name = "VSeeFace Tracking Preview"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    # fallback ukuran (kalau getWindowImageRect belum siap)
+    win_w, win_h = 1920, 1080
+
     # Runtime states
     last_raw_pitch, last_raw_yaw, last_raw_roll = 0.0, 0.0, 0.0
     blink_l_state, blink_r_state = 0.0, 0.0
     prev_time = 0.0
 
-    # Local helpers 
+    # Local helpers
     def to_unity_vec(mp_vec):
         return np.array([
             mp_vec[0] * ARM_INVERT_X * ARM_GAIN_XY,
@@ -269,7 +305,6 @@ def main():
         )
 
     def head_pose_and_faces(fl, img_w, img_h):
-        # Head pose estimation: sama persis rute hitungnya
         image_points = np.array([
             (fl.landmark[1].x * img_w, fl.landmark[1].y * img_h),
             (fl.landmark[152].x * img_w, fl.landmark[152].y * img_h),
@@ -286,10 +321,12 @@ def main():
              [0, 0, 1]], dtype=np.float64
         )
         dist_coeffs = np.zeros((4, 1))
+
         success_pnp, rot_vec, trans_vec = cv2.solvePnP(
             model_points, image_points, cam_matrix, dist_coeffs,
             flags=cv2.SOLVEPNP_ITERATIVE
         )
+
         rmat, _ = cv2.Rodrigues(rot_vec)
         angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
 
@@ -319,10 +356,8 @@ def main():
         sender.bone("RightEye", eq)
 
     def process_hand(hand_landmarks, is_left: bool, finger_stabs):
-        # common draw
         mp_drawing.draw_landmarks(image, hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
-        # choose calibration
         if is_left:
             side = "Left"
             axis_finger, axis_thumb = FINGER_AXIS_L, THUMB_AXIS_L
@@ -345,7 +380,6 @@ def main():
 
             fq = quat_from_axis_angle(angle, axis)
 
-            # send all segments (prox/inter/dist)
             for suf in BONE_SUFFIXES:
                 sender.client.send_message(
                     "/VMC/Ext/Bone/Pos",
@@ -374,24 +408,19 @@ def main():
             draw_face(image, results.face_landmarks)
             fl = results.face_landmarks
 
-            # raw pose
             curr_pitch, curr_yaw, curr_roll = head_pose_and_faces(fl, img_w, img_h)
 
-            # deadzone (harus sama)
             curr_pitch, last_raw_pitch = apply_deadzone(curr_pitch, last_raw_pitch, DEADZONE)
             curr_yaw, last_raw_yaw = apply_deadzone(curr_yaw, last_raw_yaw, DEADZONE)
             curr_roll, last_raw_roll = apply_deadzone(curr_roll, last_raw_roll, DEADZONE)
 
-            # stabilize
             s_pitch = stab_pitch.update(curr_pitch)
             s_yaw = stab_yaw.update(curr_yaw)
             s_roll = stab_roll.update(curr_roll)
 
-            # Neck + Head split
             neck_pitch, neck_yaw, neck_roll = s_pitch * NECK_RATIO, s_yaw * NECK_RATIO, s_roll * NECK_RATIO
             head_pitch, head_yaw, head_roll = s_pitch - neck_pitch, s_yaw - neck_yaw, s_roll - neck_roll
 
-            # blink (EAR)
             raw_ear_l = calculate_ear(fl, LEFT_EYE_IDXS, img_w, img_h)
             raw_ear_r = calculate_ear(fl, RIGHT_EYE_IDXS, img_w, img_h)
 
@@ -405,13 +434,11 @@ def main():
             elif raw_ear_r > EAR_THRESH_OPEN:
                 blink_r_state = 0.0
 
-            # Fix blink saat kepala miring
             if s_yaw > 20.0:
                 blink_r_state = blink_l_state
             elif s_yaw < -20.0:
                 blink_l_state = blink_r_state
 
-            # gaze (iris)
             lx, ly = get_relative_iris(fl, L_IRIS_C, L_IN, L_OUT, img_w, img_h)
             rx, ry = get_relative_iris(fl, R_IRIS_C, R_IN, R_OUT, img_w, img_h)
 
@@ -425,14 +452,12 @@ def main():
                 smooth_eye_x = stab_eye_x.state[0][0]
                 smooth_eye_y = stab_eye_y.state[0][0]
 
-            # mouth open
             mouth_dist = np.linalg.norm(
                 np.array([fl.landmark[13].x * img_w, fl.landmark[13].y * img_h]) -
                 np.array([fl.landmark[14].x * img_w, fl.landmark[14].y * img_h])
             )
             mouth_open = max(0.0, min(1.0, (mouth_dist - 5.0) / 35.0))
 
-            # send
             send_eyes_and_face(
                 (neck_pitch, neck_yaw, neck_roll),
                 (head_pitch, head_yaw, head_roll),
@@ -449,14 +474,12 @@ def main():
             def pvec(idx):
                 return [lm[idx].x, lm[idx].y, lm[idx].z]
 
-            # Spine rotation
             l_sh, r_sh = pvec(11), pvec(12)
             spine_roll = stab_spine_roll.update((l_sh[1] - r_sh[1]) * -120.0)
             spine_yaw = stab_spine_yaw.update((l_sh[2] - r_sh[2]) * -80.0)
             sq = euler_to_quaternion(0.0, math.radians(spine_yaw), math.radians(spine_roll))
             sender.bone("Spine", sq)
 
-            # Left arm
             if lm[11].visibility > 0.5 and lm[13].visibility > 0.5:
                 start = to_unity_vec(pvec(11))
                 end = to_unity_vec(pvec(13))
@@ -469,7 +492,6 @@ def main():
                     q_ll = get_limb_rotation(start, end, [1.0, 0.0, 0.0])
                     sender.bone("LeftLowerArm", q_ll)
 
-            # Right arm
             if lm[12].visibility > 0.5 and lm[14].visibility > 0.5:
                 start = to_unity_vec(pvec(12))
                 end = to_unity_vec(pvec(14))
@@ -491,7 +513,17 @@ def main():
 
         # === DISPLAY ===
         cv2.putText(image, f"FPS: {int(fps)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.imshow("VTuber ULTIMATE", image)
+
+        # update ukuran window fullscreen (kalau sudah kebaca)
+        try:
+            _, _, ww, hh = cv2.getWindowImageRect(window_name)
+            if ww > 0 and hh > 0:
+                win_w, win_h = ww, hh
+        except:
+            pass
+
+        display_frame = resize_cover(image, win_w, win_h)
+        cv2.imshow(window_name, display_frame)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
@@ -500,6 +532,7 @@ def main():
     cv2.destroyAllWindows()
     holistic.close()
     print("\n✅ Tracking stopped!")
+
 
 if __name__ == "__main__":
     main()
